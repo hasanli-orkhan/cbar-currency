@@ -28,10 +28,11 @@ public class CurrencyConverter {
    * Сконвертировать AZN в указанную валюту
    * Convert AZN to specified currency
    *
-   * @param aznValue Value in AZN
-   * @param currencyCode CurrencyCode
+   * @param aznValue Value in AZN (double)
+   * @param currencyCode CurrencyCode (enum)
    * @return Double
    * @see CurrencyCode
+   * @throws CurrencyNotFoundException - Specified currency not found
    */
   public static Double convertFromAzn(Double aznValue, CurrencyCode currencyCode)
       throws CurrencyNotFoundException {
@@ -48,8 +49,11 @@ public class CurrencyConverter {
    * Сконвертировать выбранную валюту в AZN
    * Convert specified currency to AZN
    *
+   * @param currencyValue currency value (double)
+   * @param currencyCode currency code (enum)
    * @return Double
    * @see CurrencyCode
+   * @throws CurrencyNotFoundException - Specified currency not found
    */
   public static Double convertToAzn(Double currencyValue, CurrencyCode currencyCode)
       throws CurrencyNotFoundException {
@@ -63,10 +67,14 @@ public class CurrencyConverter {
 
   /**
    * Round double value to 2 decimals
+   *
+   * @param value rounded value
+   * @param places decimal
+   * @throws IllegalArgumentException - Places is < 0
    */
   private static double round(double value, int places) {
     if (places < 0) {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException("Places is < 0");
     }
     BigDecimal bd = BigDecimal.valueOf(value);
     bd = bd.setScale(places, RoundingMode.HALF_UP);

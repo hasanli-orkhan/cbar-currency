@@ -35,8 +35,12 @@ public class CurrencyRate {
    * Получение актуального курса для выбранной валюты
    * Obtaining the current exchange rate for the selected currency
    *
+   * @param currencyCode - CurrencyCode (enum)
    * @return Currency
    * @see Currency
+   * @throws CurrencyNotFoundException - Specified currency not found
+   * @throws CurrencyCodeNotFoundException - Specified currency code (enum) not found
+   * @throws IncorrectContentTypeException - document type is not application/xml
    */
   public static Currency getActualCurrencyRate(CurrencyCode currencyCode)
       throws CurrencyNotFoundException, CurrencyCodeNotFoundException, IncorrectContentTypeException {
@@ -54,7 +58,8 @@ public class CurrencyRate {
    * Получение актуальных курсов валют
    * Obtaining up-to-date exchange rates
    *
-   * @return List\<Currency\>
+   * @return list of currencies
+   * @throws IncorrectContentTypeException - document type is not application/xml
    */
   public static List<Currency> getActualCurrencyRates() throws IncorrectContentTypeException {
     return parseCurrencies(LocalDate.now());
@@ -65,7 +70,13 @@ public class CurrencyRate {
    * Получение курса выбранной валюты для указанной даты
    * Getting the rate of the selected currency for the specified date
    *
+   * @param currencyCode - CurrencyCode (enum)
+   * @param specifiedDate - specified date (localDate)
    * @return Currency
+   * @throws CurrencyCodeNotFoundException - Specified currency code not found
+   * @throws SpecifiedDateIsAfterException - Specified date is after than actual
+   * @throws CurrencyNotFoundException - Specified currency not found
+   * @throws IncorrectContentTypeException - document type is not application/xml
    */
   public static Currency getCurrencyRateForDate(CurrencyCode currencyCode, LocalDate specifiedDate)
       throws CurrencyCodeNotFoundException, SpecifiedDateIsAfterException,
@@ -87,7 +98,10 @@ public class CurrencyRate {
    * Получить список всех курсов валют для указанной даты
    * Obtaining exchange rates for the specified date
    *
-   * @return List\<Currency\>
+   * @param specifiedDate - specified date
+   * @return currencies list
+   * @throws SpecifiedDateIsAfterException - Specified date is after than actual
+   * @throws IncorrectContentTypeException - document type is not application/xml
    */
   public static List<Currency> getCurrencyRatesForDate(LocalDate specifiedDate)
       throws SpecifiedDateIsAfterException, IncorrectContentTypeException {
@@ -103,7 +117,7 @@ public class CurrencyRate {
    * Getting a list of current exchange rates for the selected date
    *
    * @param date LocalDate (2020-12-31)
-   * @return List\<Currency\> currencies
+   * @return currencies list
    * @see Currency
    */
   private static List<Currency> parseCurrencies(LocalDate date)
@@ -140,6 +154,7 @@ public class CurrencyRate {
   /**
    * Check if the Content-Type of the document is application/xml.
    *
+   * @param specifiedUrl - url to be checked
    * @return boolean
    */
   private static boolean checkIfContentTypeIsXml(String specifiedUrl) {
@@ -160,6 +175,8 @@ public class CurrencyRate {
 
   /**
    * Check if the given xml document is up-to-date
+   *
+   * @param url - url to be checked
    */
   private static boolean checkIfActualCurrenciesExist(String url) {
     Document document = getParsedDocument(url);
@@ -173,6 +190,7 @@ public class CurrencyRate {
   /**
    * Parse w3c document from url
    *
+   * @param url - url to be parsed
    * @return Document
    */
   private static Document getParsedDocument(String url) {
