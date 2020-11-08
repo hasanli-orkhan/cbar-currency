@@ -1,5 +1,10 @@
 # Currency Rates & Currency Converter for CBAR
+This is an unofficial library for obtaining currency rates from Central Bank of Azerbaijan.
 
+[![GitHub license](https://img.shields.io/github/license/azerphoenix/cbar-currency.svg)](https://github.com/azerphoenix/cbar-currency/blob/master/LICENSE)
+[![GitHub issues](https://img.shields.io/github/issues/azerphoenix/cbar-currency)](https://github.com/azerphoenix/cbar-currency/issues)
+[![GitHub forks](https://img.shields.io/github/forks/azerphoenix/cbar-currency)](https://github.com/azerphoenix/cbar-currency/network)
+[![GitHub stars](https://img.shields.io/github/stars/azerphoenix/cbar-currency)](https://github.com/azerphoenix/cbar-currency/stargazers)
 ## Installation
 
 ### Maven
