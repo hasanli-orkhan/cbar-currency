@@ -1,5 +1,6 @@
 package info.md7.cbar_currency.model;
 
+import java.math.BigDecimal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
@@ -21,21 +22,22 @@ public class Currency {
   private CurrencyCode code;
   private String nominal;
   private String name;
-  private Double value;
+  private BigDecimal value;
 
   /**
-   * Parse Double value from String. Used for parsing double from strings like 1 t.u
+   * Parse BigDecimal value from String.
+   * Used for parsing BigDecimal from strings like 1 t.u
    *
-   * @return Double
+   * @return BigDecimal
    */
-  public Double getNominalInDouble() {
+  public BigDecimal getNominalInBigDecimal() {
     Pattern pattern = Pattern.compile("\\d+");
     Matcher matcher = pattern.matcher(nominal);
     String doubleValue = "";
     while (matcher.find()) {
       doubleValue = matcher.group();
     }
-    return Double.parseDouble(doubleValue);
+    return new BigDecimal(doubleValue);
   }
 
 }

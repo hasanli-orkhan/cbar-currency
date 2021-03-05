@@ -1,6 +1,5 @@
 package info.md7.cbar_currency.util;
 
-import info.md7.cbar_currency.exceptions.CurrencyCodeNotFoundException;
 import info.md7.cbar_currency.exceptions.CurrencyNotFoundException;
 import info.md7.cbar_currency.exceptions.IncorrectContentTypeException;
 import info.md7.cbar_currency.exceptions.SpecifiedDateIsAfterException;
@@ -8,6 +7,7 @@ import info.md7.cbar_currency.model.Constants;
 import info.md7.cbar_currency.model.Currency;
 import info.md7.cbar_currency.model.CurrencyCode;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -39,11 +39,10 @@ public class CurrencyRate {
    * @return Currency
    * @see Currency
    * @throws CurrencyNotFoundException - Specified currency not found
-   * @throws CurrencyCodeNotFoundException - Specified currency code (enum) not found
    * @throws IncorrectContentTypeException - document type is not application/xml
    */
   public static Currency getActualCurrencyRate(CurrencyCode currencyCode)
-      throws CurrencyNotFoundException, CurrencyCodeNotFoundException, IncorrectContentTypeException {
+      throws CurrencyNotFoundException, IncorrectContentTypeException {
     Arrays.stream(CurrencyCode.values()).filter(currencyCode1 -> currencyCode == currencyCode1)
         .findFirst()
         .orElseThrow(() -> new CurrencyNotFoundException("Specified currency code not found!"));
@@ -73,13 +72,12 @@ public class CurrencyRate {
    * @param currencyCode - CurrencyCode (enum)
    * @param specifiedDate - specified date (localDate)
    * @return Currency
-   * @throws CurrencyCodeNotFoundException - Specified currency code not found
    * @throws SpecifiedDateIsAfterException - Specified date is after than actual
    * @throws CurrencyNotFoundException - Specified currency not found
    * @throws IncorrectContentTypeException - document type is not application/xml
    */
   public static Currency getCurrencyRateForDate(CurrencyCode currencyCode, LocalDate specifiedDate)
-      throws CurrencyCodeNotFoundException, SpecifiedDateIsAfterException,
+      throws SpecifiedDateIsAfterException,
       CurrencyNotFoundException, IncorrectContentTypeException {
     Arrays.stream(CurrencyCode.values()).filter(currencyCode1 -> currencyCode == currencyCode1)
         .findFirst()
@@ -143,7 +141,7 @@ public class CurrencyRate {
             .code(CurrencyCode.valueOf(code))
             .nominal(nominal)
             .name(name)
-            .value(value)
+            .value(BigDecimal.valueOf(value))
             .build();
         currencies.add(currency);
       }

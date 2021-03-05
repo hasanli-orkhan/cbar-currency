@@ -28,20 +28,20 @@ public class CurrencyConverter {
    * Сконвертировать AZN в указанную валюту
    * Convert AZN to specified currency
    *
-   * @param aznValue Value in AZN (double)
+   * @param aznValue Value in AZN (BigDecimal)
    * @param currencyCode CurrencyCode (enum)
-   * @return Double
+   * @return BigDecimal
    * @see CurrencyCode
    * @throws CurrencyNotFoundException - Specified currency not found
    */
-  public static Double convertFromAzn(Double aznValue, CurrencyCode currencyCode)
+  public static BigDecimal convertFromAzn(BigDecimal aznValue, CurrencyCode currencyCode)
       throws CurrencyNotFoundException {
     Currency currency = currencies.stream()
         .filter(currency1 -> currency1.getCode() == currencyCode)
         .findFirst()
         .orElseThrow(() -> new CurrencyNotFoundException("Specified currency not found!"));
-    double result = aznValue * currency.getNominalInDouble() / currency.getValue();
-    return round(result, 2);
+    return aznValue.multiply(currency.getNominalInBigDecimal())
+        .divide(currency.getValue(), RoundingMode.HALF_UP);
   }
 
   /**
@@ -49,36 +49,19 @@ public class CurrencyConverter {
    * Сконвертировать выбранную валюту в AZN
    * Convert specified currency to AZN
    *
-   * @param currencyValue currency value (double)
+   * @param currencyValue currency value (BigDecimal)
    * @param currencyCode currency code (enum)
-   * @return Double
+   * @return BigDecimal
    * @see CurrencyCode
    * @throws CurrencyNotFoundException - Specified currency not found
    */
-  public static Double convertToAzn(Double currencyValue, CurrencyCode currencyCode)
+  public static BigDecimal convertToAzn(BigDecimal currencyValue, CurrencyCode currencyCode)
       throws CurrencyNotFoundException {
     Currency currency = currencies.stream()
         .filter(currency1 -> currency1.getCode() == currencyCode)
         .findFirst()
         .orElseThrow(() -> new CurrencyNotFoundException("Specified currency not found!"));
-    double result = currencyValue * currency.getValue() / currency.getNominalInDouble();
-    return round(result, 2);
-  }
-
-  /**
-   * Round double value to 2 decimals
-   *
-   * @param value rounded value
-   * @param places decimal
-   * @throws IllegalArgumentException - Places is < 0
-   */
-  private static double round(double value, int places) {
-    if (places < 0) {
-      throw new IllegalArgumentException("Places is < 0");
-    }
-    BigDecimal bd = BigDecimal.valueOf(value);
-    bd = bd.setScale(places, RoundingMode.HALF_UP);
-    return bd.doubleValue();
+    return currencyValue.multiply(currency.getValue()).divide(currency.getNominalInBigDecimal(), RoundingMode.HALF_UP);
   }
 
 }

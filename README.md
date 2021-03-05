@@ -47,8 +47,8 @@ import java.time.LocalDate;
 public class Main {
 
   public static void main(String ... args) {
-    CurrencyConverter.convertFromAzn(100d, CurrencyCode.BYN);
-    CurrencyConverter.convertToAzn(100d, CurrencyCode.BYN);
+    CurrencyConverter.convertFromAzn(BigDecimal.valueOf(100), CurrencyCode.BYN);
+    CurrencyConverter.convertToAzn(BigDecimal.valueOf(100), CurrencyCode.BYN);
 
     CurrencyRate.getActualCurrencyRates();
     CurrencyRate.getActualCurrencyRate(CurrencyCode.BYN);
