@@ -14,12 +14,12 @@ Dependency declaration in pom.xml
 <dependency>
     <groupId>info.md7</groupId>
     <artifactId>cbar-currency</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
 </dependency>
 ```
 ### Gradle / Grails
 ```groovy
-compile 'info.md7:cbar-currency:1.0'
+compile 'info.md7:cbar-currency:1.1'
 ```
 
 ## Features
