@@ -7,7 +7,7 @@
 
   <groupId>info.md7</groupId>
   <artifactId>cbar-currency</artifactId>
-  <version>1.1.1</version>
+  <version>1.2</version>
   <name>${project.groupId}:${project.artifactId}</name>
   <url>https://md7.info</url>
   <description>Currency Rates &amp; Currency Converter for CBAR</description>
