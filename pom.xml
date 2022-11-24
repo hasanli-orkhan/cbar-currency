@@ -7,7 +7,7 @@
 
   <groupId>info.md7</groupId>
   <artifactId>cbar-currency</artifactId>
-  <version>1.2</version>
+  <version>1.2.1</version>
   <name>${project.groupId}:${project.artifactId}</name>
   <url>https://md7.info</url>
   <description>Currency Rates &amp; Currency Converter for CBAR</description>
@@ -55,13 +55,13 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.16</version>
+      <version>1.18.24</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.13.1</version>
+      <version>4.13.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
