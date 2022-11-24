@@ -11,11 +11,20 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -29,6 +38,34 @@ import org.xml.sax.SAXException;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CurrencyRate {
+
+  static {
+    disableSslVerification();
+  }
+
+  /**
+   * Disable SSL verification for CBAR
+   */
+  private static void disableSslVerification() {
+    try {
+      TrustManager[] trustAllCerts = new TrustManager[] {
+        new X509TrustManager() {
+          public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+          }
+          public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+          public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+        }
+      };
+      SSLContext sc = SSLContext.getInstance("SSL");
+      sc.init(null, trustAllCerts, new java.security.SecureRandom());
+      HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+      HostnameVerifier allHostsValid = (hostname, session) -> true;
+      HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+    } catch (NoSuchAlgorithmException | KeyManagementException e) {
+      e.printStackTrace();
+    }
+  }
 
   /**
    * Seçilmiş valyuta üçün cari məzənnənin alınması
@@ -164,11 +201,11 @@ public class CurrencyRate {
     }
     URLConnection urlConnection = null;
     try {
-      urlConnection = url.openConnection();
+      urlConnection = Objects.requireNonNull(url).openConnection();
     } catch (IOException e) {
       e.printStackTrace();
     }
-    return urlConnection.getContentType().equals("application/xml");
+    return "application/xml".equals(Objects.requireNonNull(urlConnection).getContentType());
   }
 
   /**
