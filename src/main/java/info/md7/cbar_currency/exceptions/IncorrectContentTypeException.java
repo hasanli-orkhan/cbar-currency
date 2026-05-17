@@ -6,4 +6,8 @@ public class IncorrectContentTypeException extends Exception {
     super(message);
   }
 
+  public IncorrectContentTypeException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
 }

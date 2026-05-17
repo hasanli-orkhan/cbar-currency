@@ -19,6 +19,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Currency {
 
+  private static final Pattern NOMINAL_PATTERN = Pattern.compile("\\d+");
+
   private CurrencyCode code;
   private String nominal;
   private String name;
@@ -31,13 +33,15 @@ public class Currency {
    * @return BigDecimal
    */
   public BigDecimal getNominalInBigDecimal() {
-    Pattern pattern = Pattern.compile("\\d+");
-    Matcher matcher = pattern.matcher(nominal);
-    String doubleValue = "";
+    Matcher matcher = NOMINAL_PATTERN.matcher(nominal == null ? "" : nominal);
+    String numericValue = null;
     while (matcher.find()) {
-      doubleValue = matcher.group();
+      numericValue = matcher.group();
     }
-    return new BigDecimal(doubleValue);
+    if (numericValue == null) {
+      throw new IllegalStateException("Unable to parse nominal value: " + nominal);
+    }
+    return new BigDecimal(numericValue);
   }
 
 }

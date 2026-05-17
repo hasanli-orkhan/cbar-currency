@@ -7,8 +7,8 @@ import info.md7.cbar_currency.model.Constants;
 import info.md7.cbar_currency.model.Currency;
 import info.md7.cbar_currency.model.CurrencyCode;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.KeyManagementException;
@@ -17,14 +17,14 @@ import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+import java.util.Locale;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -38,6 +38,11 @@ import org.xml.sax.SAXException;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CurrencyRate {
+
+  private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.y");
+  private static final String BASE_URL_OVERRIDE_PROPERTY = "cbar.currency.baseUrl";
+  private static final int CONNECT_TIMEOUT_MILLIS = 5_000;
+  private static final int READ_TIMEOUT_MILLIS = 10_000;
 
   static {
     disableSslVerification();
@@ -80,13 +85,7 @@ public class CurrencyRate {
    */
   public static Currency getActualCurrencyRate(CurrencyCode currencyCode)
       throws CurrencyNotFoundException, IncorrectContentTypeException {
-    Arrays.stream(CurrencyCode.values()).filter(currencyCode1 -> currencyCode == currencyCode1)
-        .findFirst()
-        .orElseThrow(() -> new CurrencyNotFoundException("Specified currency code not found!"));
-    List<Currency> currencies = parseCurrencies(LocalDate.now());
-    return currencies.stream().filter(currency -> currency.getCode() == currencyCode)
-        .findFirst()
-        .orElseThrow(() -> new CurrencyNotFoundException("Specified currency not found!"));
+    return findCurrency(parseCurrencies(LocalDate.now()), currencyCode);
   }
 
   /**
@@ -116,16 +115,16 @@ public class CurrencyRate {
   public static Currency getCurrencyRateForDate(CurrencyCode currencyCode, LocalDate specifiedDate)
       throws SpecifiedDateIsAfterException,
       CurrencyNotFoundException, IncorrectContentTypeException {
-    Arrays.stream(CurrencyCode.values()).filter(currencyCode1 -> currencyCode == currencyCode1)
-        .findFirst()
-        .orElseThrow(() -> new CurrencyNotFoundException("Specified currency code not found!"));
+    if (currencyCode == null) {
+      throw new CurrencyNotFoundException("Specified currency code not found!");
+    }
+    if (specifiedDate == null) {
+      throw new SpecifiedDateIsAfterException("Specified date is after!");
+    }
     if (specifiedDate.isAfter(LocalDate.now())) {
       throw new SpecifiedDateIsAfterException("Specified date is after!");
     }
-    List<Currency> currencies = parseCurrencies(specifiedDate);
-    return currencies.stream().filter(currency -> currency.getCode() == currencyCode)
-        .findFirst()
-        .orElseThrow(() -> new CurrencyNotFoundException("Specified currency not found!"));
+    return findCurrency(parseCurrencies(specifiedDate), currencyCode);
   }
 
   /**
@@ -140,6 +139,9 @@ public class CurrencyRate {
    */
   public static List<Currency> getCurrencyRatesForDate(LocalDate specifiedDate)
       throws SpecifiedDateIsAfterException, IncorrectContentTypeException {
+    if (specifiedDate == null) {
+      throw new SpecifiedDateIsAfterException("Specified date is after!");
+    }
     if (specifiedDate.isAfter(LocalDate.now())) {
       throw new SpecifiedDateIsAfterException("Specified date is after!");
     }
@@ -157,11 +159,10 @@ public class CurrencyRate {
    */
   private static List<Currency> parseCurrencies(LocalDate date)
       throws IncorrectContentTypeException {
-    String formattedDate = date.format(DateTimeFormatter.ofPattern("dd.MM.y"));
-    String url = Constants.BASE_URL + formattedDate + Constants.PAGE_EXTENSION;
-    if (!checkIfContentTypeIsXml(url)) {
-      throw new IncorrectContentTypeException("Content-Type is not application/xml");
+    if (date == null) {
+      throw new IncorrectContentTypeException("Date must not be null");
     }
+    String url = buildUrl(date);
     List<Currency> currencies = new ArrayList<>();
     Document document = getParsedDocument(url);
     NodeList nodeList = document.getElementsByTagName("Valute");
@@ -169,57 +170,26 @@ public class CurrencyRate {
       Node node = nodeList.item(i);
       if (node.getNodeType() == Node.ELEMENT_NODE) {
         Element element = (Element) node;
-        String code = element.getAttribute("Code");
-        String nominal = element.getElementsByTagName("Nominal").item(0).getTextContent();
-        String name = element.getElementsByTagName("Name").item(0).getTextContent();
-        Double value = Double
-            .valueOf(element.getElementsByTagName("Value").item(0).getTextContent());
+        CurrencyCode code = parseCurrencyCode(element.getAttribute("Code"));
+        if (code == null) {
+          continue;
+        }
+        String nominal = requiredElementText(element, "Nominal");
+        String name = requiredElementText(element, "Name");
+        BigDecimal value = parseDecimal(requiredElementText(element, "Value"));
         Currency currency = Currency.builder()
-            .code(CurrencyCode.valueOf(code))
+            .code(code)
             .nominal(nominal)
             .name(name)
-            .value(BigDecimal.valueOf(value))
+            .value(value)
             .build();
         currencies.add(currency);
       }
     }
+    if (currencies.isEmpty()) {
+      throw new IncorrectContentTypeException("No currency data found in XML document");
+    }
     return currencies;
-  }
-
-  /**
-   * Check if the Content-Type of the document is application/xml.
-   *
-   * @param specifiedUrl - url to be checked
-   * @return boolean
-   */
-  private static boolean checkIfContentTypeIsXml(String specifiedUrl) {
-    URL url = null;
-    try {
-      url = new URL(specifiedUrl);
-    } catch (MalformedURLException e) {
-      e.printStackTrace();
-    }
-    URLConnection urlConnection = null;
-    try {
-      urlConnection = Objects.requireNonNull(url).openConnection();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    return "application/xml".equals(Objects.requireNonNull(urlConnection).getContentType());
-  }
-
-  /**
-   * Check if the given xml document is up-to-date
-   *
-   * @param url - url to be checked
-   */
-  private static boolean checkIfActualCurrenciesExist(String url) {
-    Document document = getParsedDocument(url);
-    Node node = document.getElementsByTagName("ValCurs").item(0);
-    Element element = (Element) node;
-    String date = element.getAttribute("Date");
-    LocalDate documentDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("dd.MM.y"));
-    return documentDate.isEqual(LocalDate.now());
   }
 
   /**
@@ -228,24 +198,98 @@ public class CurrencyRate {
    * @param url - url to be parsed
    * @return Document
    */
-  private static Document getParsedDocument(String url) {
-    DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder documentBuilder = null;
+  private static Document getParsedDocument(String url) throws IncorrectContentTypeException {
     try {
-      documentBuilder = documentBuilderFactory.newDocumentBuilder();
-    } catch (ParserConfigurationException e) {
-      e.printStackTrace();
+      URLConnection connection = openConnection(url);
+      validateXmlContentType(connection);
+      DocumentBuilder documentBuilder = createSecureDocumentBuilder();
+      try (InputStream stream = connection.getInputStream()) {
+        Document document = documentBuilder.parse(stream);
+        document.getDocumentElement().normalize();
+        return document;
+      }
+    } catch (IOException | ParserConfigurationException | SAXException e) {
+      throw new IncorrectContentTypeException("Failed to read currency rates XML", e);
     }
-    Document document = null;
+  }
+
+  private static URLConnection openConnection(String url) throws IOException {
+    URLConnection connection = new URL(url).openConnection();
+    connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
+    connection.setReadTimeout(READ_TIMEOUT_MILLIS);
+    return connection;
+  }
+
+  private static void validateXmlContentType(URLConnection connection)
+      throws IncorrectContentTypeException {
+    String contentType = connection.getContentType();
+    if (contentType == null) {
+      return;
+    }
+    String normalizedContentType = contentType.toLowerCase(Locale.ROOT);
+    if (!normalizedContentType.contains("xml")) {
+      throw new IncorrectContentTypeException(
+          "Unexpected content type: " + contentType + ". Expected XML content.");
+    }
+  }
+
+  private static DocumentBuilder createSecureDocumentBuilder()
+      throws ParserConfigurationException {
+    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+    factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+    factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+    factory.setXIncludeAware(false);
+    factory.setExpandEntityReferences(false);
+    return factory.newDocumentBuilder();
+  }
+
+  private static String buildUrl(LocalDate date) {
+    return resolveBaseUrl() + date.format(DATE_FORMATTER) + Constants.PAGE_EXTENSION;
+  }
+
+  private static String resolveBaseUrl() {
+    return System.getProperty(BASE_URL_OVERRIDE_PROPERTY, Constants.BASE_URL);
+  }
+
+  private static CurrencyCode parseCurrencyCode(String code) {
+    if (code == null || code.trim().isEmpty()) {
+      return null;
+    }
     try {
-      document = documentBuilder.parse(new URL(url).openStream());
-    } catch (SAXException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
+      return CurrencyCode.valueOf(code.trim().toUpperCase(Locale.ROOT));
+    } catch (IllegalArgumentException e) {
+      return null;
     }
-    document.getDocumentElement().normalize();
-    return document;
+  }
+
+  private static String requiredElementText(Element parent, String tagName)
+      throws IncorrectContentTypeException {
+    Node node = parent.getElementsByTagName(tagName).item(0);
+    if (node == null) {
+      throw new IncorrectContentTypeException("Missing required XML field: " + tagName);
+    }
+    return node.getTextContent();
+  }
+
+  private static BigDecimal parseDecimal(String value) throws IncorrectContentTypeException {
+    try {
+      return new BigDecimal(value.trim().replace(",", "."));
+    } catch (NumberFormatException e) {
+      throw new IncorrectContentTypeException("Invalid numeric value: " + value, e);
+    }
+  }
+
+  private static Currency findCurrency(List<Currency> currencies, CurrencyCode currencyCode)
+      throws CurrencyNotFoundException {
+    if (currencyCode == null) {
+      throw new CurrencyNotFoundException("Specified currency code not found!");
+    }
+    return currencies.stream()
+        .filter(currency -> currency.getCode() == currencyCode)
+        .findFirst()
+        .orElseThrow(() -> new CurrencyNotFoundException("Specified currency not found!"));
   }
 
 }
